@@ -120,19 +120,28 @@ if search_btn:
 
         # Display Loop
         for company in st.session_state.last_results:
-            score = company.get('match_score', 0)
-            color = "green" if score > 70 else "orange" if score > 40 else "red"
+            is_analyzed = 'match_score' in company
+            
+            if is_analyzed:
+                score = company.get('match_score', 0)
+                color = "green" if score > 70 else "orange" if score > 40 else "red"
+                score_text = f"{score}% Match"
+                reasoning_text = company.get('reasoning', 'No reasoning provided.')
+            else:
+                color = "gray"
+                score_text = "Analysis Pending"
+                reasoning_text = "Click 'Analyze Matches' button above to generate scores."
             
             with st.container():
                 st.markdown(f"""
                 <div class="company-card">
                     <div style="display:flex; justify-content:space-between;">
                         <h3>{company.get('name', 'Unknown Company')}</h3>
-                        <h3 style="color:{color};">{score}% Match</h3>
+                        <h3 style="color:{color};">{score_text}</h3>
                     </div>
                     <p><strong>Website:</strong> <a href="{company.get('url', '#')}" target="_blank">Link</a> | 
                        <strong>LinkedIn:</strong> <a href="{company.get('linkedin', '#')}" target="_blank">Profile</a></p>
-                    <p><em>{company.get('reasoning', 'Click Analyze to see AI reasoning')}</em></p>
+                    <p><em>{reasoning_text}</em></p>
                 </div>
                 """, unsafe_allow_html=True)
 
