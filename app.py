@@ -54,6 +54,8 @@ with st.sidebar:
     api_key = st.text_input("OpenAI API Key", type="password")
     user_profile_text = st.text_area("Paste Profile/Resume Text", height=200, placeholder="Paste your resume or profile description here...")
     
+    st.markdown("---")
+    max_results = st.slider("Max Companies to Fetch", min_value=10, max_value=200, value=50, step=10)
     search_btn = st.button("Search Companies")
 
 # Main Content
@@ -61,9 +63,9 @@ if search_btn:
     if not selected_country_data:
         st.error("Please select both an Industry and a Location.")
     else:
-        with st.spinner(f"Scraping companies in {selected_industry}, {selected_country}..."):
+        with st.spinner(f"Scraping companies in {selected_industry}, {selected_country} (Max: {max_results})..."):
             # Real Call with direct URL
-            data = scrape_companies(selected_country_data['url'])
+            data = scrape_companies(selected_country_data['url'], max_results=max_results)
             
             if not data:
                 st.warning("No companies found or scraper was blocked. Try different keywords.")
