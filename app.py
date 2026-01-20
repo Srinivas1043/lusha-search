@@ -82,47 +82,49 @@ if search_btn:
                 st.success(f"Found {len(data)} companies!")
                 
                 # Store results in session state to persist between reruns (if analyzing)
-                st.session_state.last_results = data
-                
-    # Display Results & AI Control
+                # Automatic AI Analysis
+                if api_key and user_profile_text:
+                    st.info("Profile loaded. Analyzing matches...")
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    analyzed_results = []
+                    total = len(data)
+                    
+                    for i, company in enumerate(data):
+                         status_text.text(f"Analyzing {i+1}/{total}: {company['name']}...")
+                         match_data = match_company_with_profile(
+                             str(company), 
+                             user_profile_text, 
+                             api_key
+                         )
+                         company.update(match_data)
+                         analyzed_results.append(company)
+                         progress_bar.progress((i + 1) / total)
+                    
+                    st.session_state.last_results = analyzed_results # Update with analyzed data
+                    progress_bar.empty()
+                    status_text.empty()
+                    st.success("Analysis Complete!")
+
+    # Display Results
     if 'last_results' in st.session_state and st.session_state.last_results:
         results = st.session_state.last_results
         
-        # AI Analysis Section
-        st.markdown("### 🤖 AI Compatibility Analysis")
+        st.markdown(f"### Results ({len(results)})")
         
         if not api_key:
-             st.warning("Enter OpenAI API Key to enable analysis.")
-        else:
-             if st.button("✨ Analyze Matches with AI"):
-                 progress_bar = st.progress(0)
-                 status_text = st.empty()
-                 
-                 analyzed_results = []
-                 total = len(results)
-                 
-                 for i, company in enumerate(results):
-                     status_text.text(f"Analyzing {i+1}/{total}: {company['name']}...")
-                     
-                     # Call AI (Sequential / Normal)
-                     match_data = match_company_with_profile(
-                         str(company), # Pass the company dict as string
-                         user_profile_text, 
-                         api_key
-                     )
-                     
-                     company.update(match_data)
-                     analyzed_results.append(company)
-                     progress_bar.progress((i + 1) / total)
-                 
-                 st.session_state.last_results = analyzed_results
-                 progress_bar.empty()
-                 status_text.empty()
-                 st.success("Analysis Complete!")
-                 st.rerun()
-
-        # Display Loop
-        for company in st.session_state.last_results:
+             st.warning("Enter OpenAI API Key to enable AI analysis.")
+        elif not user_profile_text:
+             st.warning("Paste a profile to enable AI matching.")
+            
+            # Display loop continues below...
+             
+         # Display Loop header
+         if st.session_state.last_results:
+            st.markdown(f"### Results ({len(st.session_state.last_results)})") 
+         
+         for company in st.session_state.last_results:
             is_analyzed = 'match_score' in company
             
             if is_analyzed:
