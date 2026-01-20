@@ -6,11 +6,40 @@ from utils import to_excel
 
 st.set_page_config(page_title="Lusha Company Search", page_icon="🔍", layout="wide")
 
-# ... (CSS remains same - assumed initialized before this block if not replacing whole file, 
-# but here we are replacing imports so need to be careful. The user's file has CSS block.
-# I will replace from imports down to the search button logic)
+# Custom CSS for Premium Look
+st.markdown("""
+<style>
+    /* Dark Mode Theme */
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    .company-card {
+        background-color: #262730;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #41444C;
+        margin-bottom: 15px;
+        transition: transform 0.2s;
+    }
+    .company-card:hover {
+        transform: scale(1.01);
+        border-color: #FF4B4B;
+    }
+    h3 {
+        margin-bottom: 5px;
+    }
+    a {
+        color: #4DA6FF !important;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Initialize Session State for Industries and Countries
+# Initialize Session State
 if 'industries' not in st.session_state:
     st.session_state.industries = []
 if 'countries' not in st.session_state:
@@ -53,7 +82,7 @@ with st.sidebar:
     st.markdown("---")
     st.header("AI Matching")
     
-    # Securely access API Key from secrets
+    # Secure API Key
     try:
         api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
     except:
@@ -67,13 +96,12 @@ with st.sidebar:
     max_results = st.slider("Max Companies to Fetch", min_value=10, max_value=200, value=50, step=10)
     search_btn = st.button("Search Companies")
 
-# Main Content
+# Main Content Logic
 if search_btn:
     if not selected_country_data:
         st.error("Please select both an Industry and a Location.")
     else:
         with st.spinner(f"Scraping companies in {selected_industry}, {selected_country} (Max: {max_results})..."):
-            # Real Call with direct URL
             data = scrape_companies(selected_country_data['url'], max_results=max_results)
             
             if not data:
@@ -81,7 +109,6 @@ if search_btn:
             else:
                 st.success(f"Found {len(data)} companies!")
                 
-                # Store results in session state to persist between reruns (if analyzing)
                 # Automatic AI Analysis
                 if api_key and user_profile_text:
                     st.info("Profile loaded. Analyzing matches...")
@@ -102,67 +129,61 @@ if search_btn:
                          analyzed_results.append(company)
                          progress_bar.progress((i + 1) / total)
                     
-                    st.session_state.last_results = analyzed_results # Update with analyzed data
+                    st.session_state.last_results = analyzed_results
                     progress_bar.empty()
                     status_text.empty()
                     st.success("Analysis Complete!")
+                else:
+                    st.session_state.last_results = data
 
-    # Display Results
-    if 'last_results' in st.session_state and st.session_state.last_results:
-        results = st.session_state.last_results
+# Display Results & Export (Outside Search Button)
+if 'last_results' in st.session_state and st.session_state.last_results:
+    results = st.session_state.last_results
+    
+    st.markdown(f"### Results ({len(results)})")
+    
+    if not api_key:
+         st.warning("Enter OpenAI API Key to enable AI analysis.")
+    elif not user_profile_text:
+         st.warning("Paste a profile to enable AI matching.")
+
+    # Display Loop
+    for company in results:
+        is_analyzed = 'match_score' in company
         
-        st.markdown(f"### Results ({len(results)})")
+        if is_analyzed:
+            score = company.get('match_score', 0)
+            color = "green" if score > 70 else "orange" if score > 40 else "red"
+            score_text = f"{score}% Match"
+            reasoning_text = company.get('reasoning', 'No reasoning provided.')
+        else:
+            color = "gray"
+            score_text = "Analysis Pending"
+            reasoning_text = "Analysis pending (Check API Key/Profile)..."
         
-        if not api_key:
-             st.warning("Enter OpenAI API Key to enable AI analysis.")
-        elif not user_profile_text:
-             st.warning("Paste a profile to enable AI matching.")
-            
-            # Display loop continues below...
-             
-         # Display Loop header
-         if st.session_state.last_results:
-            st.markdown(f"### Results ({len(st.session_state.last_results)})") 
-         
-         for company in st.session_state.last_results:
-            is_analyzed = 'match_score' in company
-            
-            if is_analyzed:
-                score = company.get('match_score', 0)
-                color = "green" if score > 70 else "orange" if score > 40 else "red"
-                score_text = f"{score}% Match"
-                reasoning_text = company.get('reasoning', 'No reasoning provided.')
-            else:
-                color = "gray"
-                score_text = "Analysis Pending"
-                reasoning_text = "Click 'Analyze Matches' button above to generate scores."
-            
-            with st.container():
-                st.markdown(f"""
-                <div class="company-card">
-                    <div style="display:flex; justify-content:space-between;">
-                        <h3>{company.get('name', 'Unknown Company')}</h3>
-                        <h3 style="color:{color};">{score_text}</h3>
-                    </div>
-                    <p><strong>Website:</strong> <a href="{company.get('website_url', company.get('url', '#'))}" target="_blank">Link</a> | 
-                       <strong>LinkedIn:</strong> <a href="{company.get('linkedin', '#')}" target="_blank">Profile</a> |
-                       <span style="font-size:0.8em; color:gray;">(Lusha: <a href="{company.get('url', '#')}" target="_blank">Source</a>)</span></p>
-                    <p><em>{reasoning_text}</em></p>
+        with st.container():
+            st.markdown(f"""
+            <div class="company-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <h3>{company.get('name', 'Unknown Company')}</h3>
+                    <h3 style="color:{color};">{score_text}</h3>
                 </div>
-                """, unsafe_allow_html=True)
+                <p><strong>Website:</strong> <a href="{company.get('website_url', company.get('url', '#'))}" target="_blank">Link</a> | 
+                   <strong>LinkedIn:</strong> <a href="{company.get('linkedin', '#')}" target="_blank">Profile</a> |
+                   <span style="font-size:0.8em; color:gray;">(Lusha: <a href="{company.get('url', '#')}" target="_blank">Source</a>)</span></p>
+                <p><em>{reasoning_text}</em></p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Export
-        if 'last_results' in st.session_state:
-            df = pd.DataFrame(st.session_state.last_results)
-            
-            # Convert to Excel
-            excel_data = to_excel(df)
-            st.markdown("### 📥 Export Data")
-            st.download_button(
-                label="Download Results as Excel",
-                data=excel_data,
-                file_name=f"lusha_companies_{selected_industry}_{selected_country}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-            
-            st.dataframe(df)
+    # Export Logic
+    df = pd.DataFrame(st.session_state.last_results)
+    excel_data = to_excel(df)
+    st.markdown("### 📥 Export Data")
+    st.download_button(
+        label="Download Results as Excel",
+        data=excel_data,
+        file_name=f"lusha_companies_{selected_industry}_{selected_country}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
+    st.dataframe(df)
