@@ -94,29 +94,32 @@ if search_btn:
         if not api_key:
              st.warning("Enter OpenAI API Key to enable analysis.")
         else:
-             if st.button("✨ Analyze Matches with AI (Batch Process)"):
-                 with st.spinner("Analyzing companies in batches..."):
-                     from ai_matcher import batch_match_companies
+             if st.button("✨ Analyze Matches with AI"):
+                 progress_bar = st.progress(0)
+                 status_text = st.empty()
+                 
+                 analyzed_results = []
+                 total = len(results)
+                 
+                 for i, company in enumerate(results):
+                     status_text.text(f"Analyzing {i+1}/{total}: {company['name']}...")
                      
-                     # Process in batches of 20
-                     batch_size = 20
-                     analyzed_results = []
+                     # Call AI (Sequential / Normal)
+                     match_data = match_company_with_profile(
+                         str(company), # Pass the company dict as string
+                         user_profile_text, 
+                         api_key
+                     )
                      
-                     for i in range(0, len(results), batch_size):
-                         batch = results[i:i+batch_size]
-                         # Call AI
-                         ai_response = batch_match_companies(batch, user_profile_text, api_key)
-                         
-                         # Merge results
-                         for idx, company in enumerate(batch):
-                             # Key in response corresponds to index in the batch list (0 to batch_size-1)
-                             match_data = ai_response.get(str(idx), {"match_score": 0, "reasoning": "AI Error"})
-                             company.update(match_data)
-                             analyzed_results.append(company)
-                     
-                     st.session_state.last_results = analyzed_results
-                     st.success("Analysis Complete!")
-                     st.rerun()
+                     company.update(match_data)
+                     analyzed_results.append(company)
+                     progress_bar.progress((i + 1) / total)
+                 
+                 st.session_state.last_results = analyzed_results
+                 progress_bar.empty()
+                 status_text.empty()
+                 st.success("Analysis Complete!")
+                 st.rerun()
 
         # Display Loop
         for company in st.session_state.last_results:
