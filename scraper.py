@@ -199,8 +199,52 @@ async def _scrape_companies(url, max_results=50):
                     
         except Exception as e:
             print(f"Error scraping companies: {e}")
-        finally:
-            await browser.close()
+        
+        # Enrichment Phase
+        print(f"Enriching {len(results)} companies with website details...")
+        for i, company in enumerate(results):
+            try:
+                print(f"Enriching {i+1}/{len(results)}: {company['name']}")
+                await page.goto(company['url'], timeout=30000)
+                await page.wait_for_timeout(1500) 
+                
+                # Check for Website Link in Hero Section
+                # Based on user screenshot: class="company-hero-info" -> a tag
+                # Or generic search for 'Website' or external links
+                website_url = "N/A"
+                
+                # Method 1: Look for common website icon/text patterns
+                # The screenshot shows a link like www.123led.nl in the hero section
+                
+                hero_links = await page.locator(".company-hero-info a").all()
+                for link in hero_links:
+                    href = await link.get_attribute("href")
+                    if href and "lusha.com" not in href and "linkedin.com" not in href and "javascript" not in href:
+                        website_url = href
+                        break
+                
+                # Fallback: Look for any link with "www." or http that matches company name loosely
+                if website_url == "N/A":
+                    all_links = await page.locator("a").all()
+                    for link in all_links:
+                        href = await link.get_attribute("href")
+                        if href and ("http" in href or "www" in href):
+                             # Exclude internal/social
+                             if any(x in href.lower() for x in ["lusha.com", "linkedin", "twitter", "facebook", "instagram", "google", "maps"]):
+                                 continue
+                             # Heuristic: link text often contains "www" or matches name
+                             text = await link.inner_text()
+                             if "www" in text or "Website" in text:
+                                  website_url = href
+                                  break
+
+                company['website_url'] = website_url
+                
+            except Exception as e:
+                print(f"Error enriching {company['name']}: {e}")
+                company['website_url'] = "N/A"
+
+        await browser.close()
     return results
 
 # Synchronous Wrappers

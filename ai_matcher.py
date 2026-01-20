@@ -52,7 +52,7 @@ def batch_match_companies(companies_list, user_profile_text, api_key):
     client = OpenAI(api_key=api_key)
     
     # Prepare batch input
-    companies_text = "\n".join([f"ID {i}: {c['name']} - {c['url']} - {c.get('description', '')}" for i, c in enumerate(companies_list)])
+    companies_text = "\n".join([f"ID {i}: {c['name']} - {c.get('website_url', 'N/A')} - {c.get('description', '')}" for i, c in enumerate(companies_list)])
 
     prompt = f"""
     You are a career matching assistant. 

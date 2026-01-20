@@ -139,8 +139,9 @@ if search_btn:
                         <h3>{company.get('name', 'Unknown Company')}</h3>
                         <h3 style="color:{color};">{score_text}</h3>
                     </div>
-                    <p><strong>Website:</strong> <a href="{company.get('url', '#')}" target="_blank">Link</a> | 
-                       <strong>LinkedIn:</strong> <a href="{company.get('linkedin', '#')}" target="_blank">Profile</a></p>
+                    <p><strong>Website:</strong> <a href="{company.get('website_url', company.get('url', '#'))}" target="_blank">Link</a> | 
+                       <strong>LinkedIn:</strong> <a href="{company.get('linkedin', '#')}" target="_blank">Profile</a> |
+                       <span style="font-size:0.8em; color:gray;">(Lusha: <a href="{company.get('url', '#')}" target="_blank">Source</a>)</span></p>
                     <p><em>{reasoning_text}</em></p>
                 </div>
                 """, unsafe_allow_html=True)
