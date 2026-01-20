@@ -3,6 +3,7 @@ from playwright.async_api import async_playwright
 import pandas as pd
 import random
 import sys
+import subprocess
 
 # Generic async runner with Windows fix
 def run_async(coroutine):
@@ -10,10 +11,18 @@ def run_async(coroutine):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     return asyncio.run(coroutine)
 
+async def _launch_browser(p):
+    try:
+        return await p.chromium.launch(headless=True)
+    except Exception:
+        print("Browser launch failed, attempting to install browsers...")
+        subprocess.run(["playwright", "install", "chromium"])
+        return await p.chromium.launch(headless=True)
+
 async def _get_industries():
     industries = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await _launch_browser(p)
         page = await browser.new_page()
         try:
             # Navigate to generic search page
@@ -55,7 +64,7 @@ async def _get_industries():
 async def _get_countries(industry_url):
     countries = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await _launch_browser(p)
         page = await browser.new_page()
         try:
             print(f"Fetching countries from {industry_url}...")
@@ -93,7 +102,7 @@ async def _get_countries(industry_url):
 async def _scrape_companies(url):
     results = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await _launch_browser(p)
         page = await browser.new_page()
         try:
             print(f"Scraping companies from {url}...")
