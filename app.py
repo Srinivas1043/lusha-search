@@ -50,8 +50,17 @@ with st.sidebar:
     selected_country_data = next((c for c in st.session_state.countries if c['name'] == selected_country), None)
 
     st.markdown("---")
+    st.markdown("---")
     st.header("AI Matching")
-    api_key = st.text_input("OpenAI API Key", type="password")
+    
+    # Securely access API Key from secrets
+    try:
+        api_key = st.secrets["secrets"]["OPENAI_API_KEY"]
+    except:
+        api_key = st.text_input("OpenAI API Key", type="password")
+        if not api_key:
+            st.warning("Please add your API Key to .streamlit/secrets.toml or enter it above.")
+            
     user_profile_text = st.text_area("Paste Profile/Resume Text", height=200, placeholder="Paste your resume or profile description here...")
     
     st.markdown("---")
