@@ -136,17 +136,18 @@ if search_btn:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Export
-                if 'last_results' in st.session_state:
-                    df = pd.DataFrame(st.session_state.last_results)
-                    
-                    # Convert to Excel
-                    excel_data = to_excel(df)
-                    st.download_button(
-                        label="📥 Download Results as Excel",
-                        data=excel_data,
-                        file_name=f"lusha_companies_{selected_industry}_{selected_country}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                    
-                    st.dataframe(df)
+        # Export
+        if 'last_results' in st.session_state:
+            df = pd.DataFrame(st.session_state.last_results)
+            
+            # Convert to Excel
+            excel_data = to_excel(df)
+            st.markdown("### 📥 Export Data")
+            st.download_button(
+                label="Download Results as Excel",
+                data=excel_data,
+                file_name=f"lusha_companies_{selected_industry}_{selected_country}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            
+            st.dataframe(df)
